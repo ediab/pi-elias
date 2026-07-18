@@ -3,8 +3,6 @@
 # Does NOT install MCPs, auth keys, or provider/model settings.
 set -euo pipefail
 
-REPO_RAW="https://raw.githubusercontent.com/ediab/pi-elias/main"
-
 PACKAGES=(
   npm:pi-web-access
   npm:pi-codex-goal
@@ -21,10 +19,10 @@ PACKAGES=(
   npm:pi-lsp
   npm:pi-simplify
   npm:pi-powerline
+  npm:@upstash/context7-pi
 )
 
 SKILLS_DIR="$HOME/.agents/skills"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "==> 1/3  pi harness"
 if command -v pi >/dev/null 2>&1; then
@@ -46,16 +44,6 @@ done
 echo "==> 3/3  skills"
 mkdir -p "$SKILLS_DIR"
 
-# context7-mcp: standalone skill file (no upstream repo). Use the local copy
-# when running from a clone, otherwise fetch it from this repo's raw URL.
-mkdir -p "$SKILLS_DIR/context7-mcp"
-if [ -f "$SCRIPT_DIR/skills/context7-mcp/SKILL.md" ]; then
-  cp "$SCRIPT_DIR/skills/context7-mcp/SKILL.md" "$SKILLS_DIR/context7-mcp/SKILL.md"
-else
-  curl -fsSL "$REPO_RAW/skills/context7-mcp/SKILL.md" -o "$SKILLS_DIR/context7-mcp/SKILL.md"
-fi
-echo "    context7-mcp  installed"
-
 # superpowers: upstream git repo, symlinked into the skills dir.
 mkdir -p "$HOME/.codex"
 if [ ! -d "$HOME/.codex/superpowers/.git" ]; then
@@ -70,7 +58,6 @@ fi
 
 echo "==> verify"
 command -v pi >/dev/null 2>&1 && echo "    pi: $(pi --version)" || echo "    pi: MISSING"
-[ -f "$SKILLS_DIR/context7-mcp/SKILL.md" ] && echo "    ok: context7-mcp skill" || echo "    MISSING: context7-mcp"
 [ -L "$SKILLS_DIR/superpowers" ] && echo "    ok: superpowers skill" || echo "    MISSING: superpowers"
 
 echo "==> done."
