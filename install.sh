@@ -22,7 +22,12 @@ PACKAGES=(
   npm:@upstash/context7-pi
 )
 
-SKILLS_DIR="$HOME/.agents/skills"
+# Custom (non-package) skills bundled in this repo.
+CUSTOM_SKILLS=(handoff grill-me grilling)
+
+# Resolve the repo root (works for clone+run and curl|bash via $0).
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+PI_SKILLS_DIR="$HOME/.pi/agent/skills"   # note: 'agent' singular — the path pi scans
 
 echo "==> 1/3  pi harness"
 if command -v pi >/dev/null 2>&1; then
@@ -41,24 +46,24 @@ for pkg in "${PACKAGES[@]}"; do
   pi install "$pkg" || echo "  FAILED: $pkg  (rerun: pi install $pkg)"
 done
 
-echo "==> 3/3  skills"
-mkdir -p "$SKILLS_DIR"
-
-# superpowers: upstream git repo, symlinked into the skills dir.
-mkdir -p "$HOME/.codex"
-if [ ! -d "$HOME/.codex/superpowers/.git" ]; then
-  git clone --depth 1 https://github.com/obra/superpowers.git "$HOME/.codex/superpowers"
-fi
-if [ -L "$SKILLS_DIR/superpowers" ] || [ ! -e "$SKILLS_DIR/superpowers" ]; then
-  ln -sfn "$HOME/.codex/superpowers/skills" "$SKILLS_DIR/superpowers"
-  echo "    superpowers  cloned + linked"
-else
-  echo "    superpowers  skipped ($SKILLS_DIR/superpowers exists and is not a symlink)"
-fi
+echo "==> 3/3  custom skills (${#CUSTOM_SKILLS[@]} total)"
+mkdir -p "$PI_SKILLS_DIR"
+for skill in "${CUSTOM_SKILLS[@]}"; do
+  src="$SCRIPT_DIR/skills/$skill/SKILL.md"
+  if [ ! -f "$src" ]; then
+    echo "  MISSING: $skill (no $src) — clone the repo instead of curl|bash, or add the skill"
+    continue
+  fi
+  mkdir -p "$PI_SKILLS_DIR/$skill"
+  cp "$src" "$PI_SKILLS_DIR/$skill/SKILL.md"
+  echo "    $skill  installed"
+done
 
 echo "==> verify"
 command -v pi >/dev/null 2>&1 && echo "    pi: $(pi --version)" || echo "    pi: MISSING"
-[ -L "$SKILLS_DIR/superpowers" ] && echo "    ok: superpowers skill" || echo "    MISSING: superpowers"
+for skill in "${CUSTOM_SKILLS[@]}"; do
+  [ -f "$PI_SKILLS_DIR/$skill/SKILL.md" ] && echo "    ok: $skill" || echo "    MISSING: $skill"
+done
 
 echo "==> done."
 echo "    MCPs and auth keys were NOT installed — configure those separately."

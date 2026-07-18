@@ -10,8 +10,10 @@ plus Elias's packages and skills. For quickly bootstrapping pi on a new machine.
 - **16 pi packages** — web-access, codex-goal, pi-notify, mcp-adapter, subagents, pi-pretty,
   ponytail, opencode-theme, plan, btw, compound-engineering, ask-user, lsp, simplify, powerline,
   and `@upstash/context7-pi` (Context7 docs tools + skill).
-- **skills** — `superpowers` (cloned from `obra/superpowers` and symlinked).
-  Context7 ships its own skill via the package above.
+  Package-installed skills (librarian, ponytail, the `ce-*` suite, `ask-user`, Context7's own
+  skill, etc.) come along automatically with their packages — nothing extra to do.
+- **3 custom skills** — `handoff`, `grill-me`, `grilling` (bundled in this repo under `skills/`),
+  copied to `~/.pi/agent/skills/` (the path pi actually scans).
 
 ## What it does NOT install
 
@@ -29,7 +31,8 @@ cd pi-elias
 ./install.sh
 ```
 
-Or run directly via curl:
+Or run directly via curl (note: the bundled custom skills won't be present without a clone —
+`install.sh` will warn and skip them; clone for the full set):
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/ediab/pi-elias/main/install.sh | bash
