@@ -12,7 +12,6 @@ PACKAGES=(
   npm:@heyhuynhgiabuu/pi-pretty
   npm:@dietrichgebert/ponytail
   npm:pi-opencode-theme
-  npm:pi-plan
   npm:pi-btw
   npm:pi-compound-engineering
   npm:pi-ask-user
@@ -24,6 +23,9 @@ PACKAGES=(
 
 # Custom (non-package) skills bundled in this repo.
 CUSTOM_SKILLS=(handoff grill-me grilling)
+
+# Custom extensions bundled in this repo (single-file .ts -> ~/.pi/agent/extensions/).
+CUSTOM_EXTENSIONS=(clear exit)
 
 # Resolve the repo root (works for clone+run and curl|bash via $0).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
@@ -46,7 +48,7 @@ for pkg in "${PACKAGES[@]}"; do
   pi install "$pkg" || echo "  FAILED: $pkg  (rerun: pi install $pkg)"
 done
 
-echo "==> 3/3  custom skills (${#CUSTOM_SKILLS[@]} total)"
+echo "==> 3/3  custom skills (${#CUSTOM_SKILLS[@]} total) + extensions (${#CUSTOM_EXTENSIONS[@]} total)"
 mkdir -p "$PI_SKILLS_DIR"
 for skill in "${CUSTOM_SKILLS[@]}"; do
   src="$SCRIPT_DIR/skills/$skill/SKILL.md"
@@ -59,10 +61,27 @@ for skill in "${CUSTOM_SKILLS[@]}"; do
   echo "    $skill  installed"
 done
 
+PI_EXTENSIONS_DIR="$HOME/.pi/agent/extensions"
+mkdir -p "$PI_EXTENSIONS_DIR"
+for ext in "${CUSTOM_EXTENSIONS[@]}"; do
+  src="$SCRIPT_DIR/extensions/$ext.ts"
+  if [ ! -f "$src" ]; then
+    echo "  MISSING: $ext (no $src) — clone the repo instead of curl|bash"
+    continue
+  fi
+  cp "$src" "$PI_EXTENSIONS_DIR/$ext.ts"
+  echo "    $ext  installed"
+done
+
 echo "==> verify"
 command -v pi >/dev/null 2>&1 && echo "    pi: $(pi --version)" || echo "    pi: MISSING"
+echo "    packages:"
+pi list 2>/dev/null || echo "    pi list failed"
 for skill in "${CUSTOM_SKILLS[@]}"; do
   [ -f "$PI_SKILLS_DIR/$skill/SKILL.md" ] && echo "    ok: $skill" || echo "    MISSING: $skill"
+done
+for ext in "${CUSTOM_EXTENSIONS[@]}"; do
+  [ -f "$HOME/.pi/agent/extensions/$ext.ts" ] && echo "    ok: $ext" || echo "    MISSING: $ext"
 done
 
 echo "==> done."
