@@ -37,3 +37,13 @@ Or run directly via curl (note: the bundled custom skills won't be present witho
 ```sh
 curl -fsSL https://raw.githubusercontent.com/ediab/pi-elias/main/install.sh | bash
 ```
+
+## Updating an existing machine
+
+`install.sh` is a bootstrap — it skips pi when already installed and uses `pi install`
+(add), not update. For day-to-day updates use `update.sh`, which runs pi's real updater
+and re-syncs the 3 bundled skills:
+
+```sh
+./update.sh        # = pi update --all + re-copy custom skills
+```
