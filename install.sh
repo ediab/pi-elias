@@ -5,20 +5,22 @@ set -euo pipefail
 
 PACKAGES=(
   npm:pi-web-access
-  npm:pi-codex-goal
   npm:@yusukeshib/pi-notify
   npm:pi-mcp-adapter
   npm:pi-subagents
   npm:@heyhuynhgiabuu/pi-pretty
   npm:@dietrichgebert/ponytail
-  npm:pi-opencode-theme
-  npm:pi-btw
+  npm:pi-claude-cli
   npm:pi-compound-engineering
   npm:pi-ask-user
   npm:pi-lsp
   npm:pi-simplify
-  npm:pi-powerline
-  npm:@upstash/context7-pi
+  npm:@juicesharp/rpiv-btw
+  npm:@juicesharp/rpiv-advisor
+  npm:pi-shannon-statusline
+  npm:pi-caveman
+  npm:@juicesharp/rpiv-todo
+  git:github.com/victor-software-house/pi-curated-themes
 )
 
 # Custom (non-package) skills bundled in this repo.
@@ -43,12 +45,18 @@ else
   command -v pi >/dev/null 2>&1 || { echo "    ERROR: pi still not on PATH"; exit 1; }
 fi
 
+# lefthook: required by pi-curated-themes' npm prepare script.
+if ! command -v lefthook >/dev/null 2>&1 && command -v brew >/dev/null 2>&1; then
+  echo "    installing lefthook (needed by pi-curated-themes)..."
+  brew install lefthook || echo "    warn: lefthook install failed — pi-curated-themes may fail"
+fi
+
 echo "==> 2/3  packages (${#PACKAGES[@]} total)"
 for pkg in "${PACKAGES[@]}"; do
   pi install "$pkg" || echo "  FAILED: $pkg  (rerun: pi install $pkg)"
 done
 
-echo "==> 3/3  custom skills (${#CUSTOM_SKILLS[@]} total) + extensions (${#CUSTOM_EXTENSIONS[@]} total)"
+echo "==> 3/3  custom skills (${#CUSTOM_SKILLS[@]} total) + extensions (${#CUSTOM_EXTENSIONS[@]} total) + AGENTS.md seed"
 mkdir -p "$PI_SKILLS_DIR"
 for skill in "${CUSTOM_SKILLS[@]}"; do
   src="$SCRIPT_DIR/skills/$skill/SKILL.md"
@@ -73,6 +81,15 @@ for ext in "${CUSTOM_EXTENSIONS[@]}"; do
   echo "    $ext  installed"
 done
 
+# Seed ~/.pi/agent/AGENTS.md from the sanitized repo copy. Only when absent — never clobber
+# local-only sections like VPS access details.
+if [ ! -f "$HOME/.pi/agent/AGENTS.md" ] && [ -f "$SCRIPT_DIR/AGENTS.md" ]; then
+  cp "$SCRIPT_DIR/AGENTS.md" "$HOME/.pi/agent/AGENTS.md"
+  echo "    AGENTS.md  seeded (add any local-only sections, e.g. VPS access, manually)"
+else
+  echo "    AGENTS.md  already present — left untouched (local edits preserved)"
+fi
+
 echo "==> verify"
 command -v pi >/dev/null 2>&1 && echo "    pi: $(pi --version)" || echo "    pi: MISSING"
 echo "    packages:"
@@ -83,6 +100,7 @@ done
 for ext in "${CUSTOM_EXTENSIONS[@]}"; do
   [ -f "$HOME/.pi/agent/extensions/$ext.ts" ] && echo "    ok: $ext" || echo "    MISSING: $ext"
 done
+[ -f "$HOME/.pi/agent/AGENTS.md" ] && echo "    ok: AGENTS.md" || echo "    MISSING: AGENTS.md"
 
 echo "==> done."
 echo "    MCPs and auth keys were NOT installed — configure those separately."

@@ -7,11 +7,12 @@ plus Elias's packages and skills. For quickly bootstrapping pi on a new machine.
 
 - **pi harness** — via npm (`@earendil-works/pi-coding-agent`), falling back to the official
   curl installer (`https://pi.dev/install.sh`) if npm fails.
-- **16 pi packages** — web-access, codex-goal, pi-notify, mcp-adapter, subagents, pi-pretty,
-  ponytail, opencode-theme, plan, btw, compound-engineering, ask-user, lsp, simplify, powerline,
-  and `@upstash/context7-pi` (Context7 docs tools + skill).
-  Package-installed skills (librarian, ponytail, the `ce-*` suite, `ask-user`, Context7's own
-  skill, etc.) come along automatically with their packages — nothing extra to do.
+- **pi packages** — the `PACKAGES` array in `install.sh` is the canonical list (web-access,
+  subagents, ponytail, ask-user, compound-engineering, pi-pretty, the `@juicesharp/rpiv-*`
+  family, curated themes, and more). See `install.sh` rather than this README — it's the source
+  of truth so the two never drift.
+  Package-installed skills (librarian, ponytail, the `ce-*` suite, `ask-user`, etc.) come along
+  automatically with their packages — nothing extra to do.
 - **3 custom skills** — `handoff`, `grill-me`, `grilling` (bundled in this repo under `skills/`),
   copied to `~/.pi/agent/skills/` (the path pi actually scans).
 
