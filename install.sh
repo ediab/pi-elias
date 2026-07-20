@@ -27,7 +27,7 @@ PACKAGES=(
 CUSTOM_SKILLS=(handoff grill-me grilling)
 
 # Custom extensions bundled in this repo (single-file .ts -> ~/.pi/agent/extensions/).
-CUSTOM_EXTENSIONS=(clear exit)
+CUSTOM_EXTENSIONS=(clear exit no-footer)
 
 # Resolve the repo root (works for clone+run and curl|bash via $0).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"

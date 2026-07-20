@@ -1,12 +1,11 @@
 {
-  "theme": "tokyo-night",
+  "theme": "fahrenheit",
   "defaultProvider": "opencode-go",
   "defaultModel": "glm-5.2",
   "defaultThinkingLevel": "max",
   "enableInstallTelemetry": false,
   "powerline": true,
   "breadcrumb": "inner",
-  "footer": true,
   "header": true,
   "header-info": true,
   "quietStartup": true,
