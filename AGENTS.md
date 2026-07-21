@@ -60,6 +60,15 @@ For multi-step tasks, state a brief plan:
 
 Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
+## 5. Be Brief
+
+**Default to terse. Code first, prose second.**
+
+- Drop filler, hedging, and pleasantries. Fragments are fine.
+- State what changed and why. Cut anything else.
+- Explanation you were asked for (a report, walkthrough, per-phase notes) is not debt — give it in full.
+- Code blocks, errors, and commands stay exact.
+
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
@@ -86,4 +95,24 @@ When you make changes to the pi harness setup (custom extensions, skills, instal
 
 ---
 
+## Documented Solutions
+
+`docs/solutions/` — documented solutions to past problems (bugs, best practices, workflow patterns, tooling decisions), organized by category with YAML frontmatter (`module`, `tags`, `problem_type`). Relevant when implementing or debugging in documented areas.
+
+---
+
 _Note: machine-specific sections (e.g. VPS access details) are kept local-only in `~/.pi/agent/AGENTS.md` and intentionally not committed to this public repo. `install.sh` seeds this file only when it's absent, so it never clobbers those local additions. On a new machine, re-add them manually after running `install.sh`._
+
+<!-- BEGIN COMPOUND PI TOOL MAP -->
+## Compound Engineering (Pi compatibility)
+
+This block is added by the pi-compound-engineering package.
+
+Pi extensions used by skills shipped by this package:
+- Required for full functionality: `pi-subagents` (by nicobailon) provides the `subagent` tool used by ce-compound, ce-code-review, ce-plan, ce-compound-refresh, and other parallel-agent skills.
+- Recommended: `pi-ask-user` (by edlsh) provides the `ask_user` tool; skills fall back to numbered options in chat when it is missing.
+
+Install with:
+  pi install npm:pi-subagents
+  pi install npm:pi-ask-user
+<!-- END COMPOUND PI TOOL MAP -->
