@@ -17,7 +17,6 @@ PACKAGES=(
   npm:pi-simplify
   npm:@juicesharp/rpiv-btw
   npm:@juicesharp/rpiv-advisor
-  npm:pi-shannon-statusline
   npm:pi-caveman
   npm:@juicesharp/rpiv-todo
   git:github.com/victor-software-house/pi-curated-themes
@@ -27,7 +26,7 @@ PACKAGES=(
 CUSTOM_SKILLS=(handoff grill-me grilling)
 
 # Custom extensions bundled in this repo (single-file .ts -> ~/.pi/agent/extensions/).
-CUSTOM_EXTENSIONS=(clear exit no-footer)
+CUSTOM_EXTENSIONS=(clear exit no-footer statusline)
 
 # Resolve the repo root (works for clone+run and curl|bash via $0).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
