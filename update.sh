@@ -9,6 +9,7 @@ PI_SKILLS_DIR="$HOME/.pi/agent/skills"
 PI_EXTENSIONS_DIR="$HOME/.pi/agent/extensions"
 CUSTOM_SKILLS=(handoff grill-me grilling)
 CUSTOM_EXTENSIONS=(clear exit no-footer)
+CUSTOM_EXTENSION_DIRS=(plan-mode)
 
 echo "==> 1/2  pi + packages"
 pi update --all
@@ -35,6 +36,16 @@ for ext in "${CUSTOM_EXTENSIONS[@]}"; do
   fi
   cp "$src" "$PI_EXTENSIONS_DIR/$ext.ts"
   echo "    $ext  re-synced"
+done
+for ext in "${CUSTOM_EXTENSION_DIRS[@]}"; do
+  src="$SCRIPT_DIR/extensions/$ext"
+  if [ ! -d "$src" ]; then
+    echo "  MISSING: $ext (no $src/) — run from a clone of the repo"
+    continue
+  fi
+  mkdir -p "$PI_EXTENSIONS_DIR/$ext"
+  cp -R "$src/". "$PI_EXTENSIONS_DIR/$ext/"
+  echo "    $ext/  re-synced"
 done
 
 echo "==> done."

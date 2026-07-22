@@ -27,6 +27,8 @@ CUSTOM_SKILLS=(handoff grill-me grilling)
 
 # Custom extensions bundled in this repo (single-file .ts -> ~/.pi/agent/extensions/).
 CUSTOM_EXTENSIONS=(clear exit no-footer statusline)
+# Custom directory extensions bundled in this repo (dir with index.ts -> ~/.pi/agent/extensions/<name>/).
+CUSTOM_EXTENSION_DIRS=(plan-mode)
 
 # Resolve the repo root (works for clone+run and curl|bash via $0).
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
@@ -79,6 +81,16 @@ for ext in "${CUSTOM_EXTENSIONS[@]}"; do
   cp "$src" "$PI_EXTENSIONS_DIR/$ext.ts"
   echo "    $ext  installed"
 done
+for ext in "${CUSTOM_EXTENSION_DIRS[@]}"; do
+  src="$SCRIPT_DIR/extensions/$ext"
+  if [ ! -d "$src" ]; then
+    echo "  MISSING: $ext (no $src/) — clone the repo instead of curl|bash"
+    continue
+  fi
+  mkdir -p "$PI_EXTENSIONS_DIR/$ext"
+  cp -R "$src/". "$PI_EXTENSIONS_DIR/$ext/"
+  echo "    $ext/  installed"
+done
 
 # Seed ~/.pi/agent/AGENTS.md from the sanitized repo copy. Only when absent — never clobber
 # local-only sections like VPS access details.
@@ -98,6 +110,9 @@ for skill in "${CUSTOM_SKILLS[@]}"; do
 done
 for ext in "${CUSTOM_EXTENSIONS[@]}"; do
   [ -f "$HOME/.pi/agent/extensions/$ext.ts" ] && echo "    ok: $ext" || echo "    MISSING: $ext"
+done
+for ext in "${CUSTOM_EXTENSION_DIRS[@]}"; do
+  [ -f "$HOME/.pi/agent/extensions/$ext/index.ts" ] && echo "    ok: $ext/" || echo "    MISSING: $ext"
 done
 [ -f "$HOME/.pi/agent/AGENTS.md" ] && echo "    ok: AGENTS.md" || echo "    MISSING: AGENTS.md"
 
