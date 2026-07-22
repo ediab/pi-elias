@@ -1,0 +1,6 @@
+# Concepts
+
+Shared domain vocabulary for this project — entities, named processes, and status concepts with project-specific meaning. Seeded with core domain vocabulary, then accretes as ce-compound and ce-compound-refresh process learnings; direct edits are fine. Glossary only, not a spec or catch-all.
+
+- **plan mode** — a read-only exploration phase of the `plan-mode` pi extension (`extensions/plan-mode/`). Toggled with `Ctrl+Shift+L` (or `/plan`, or `--plan`). While active, the built-in `edit` and `write` tools are disabled and `bash` is restricted to a read-only allowlist; the agent produces a numbered `Plan:` and signs a `Recommended execution:` line. Distinct from pi's shipped `examples/extensions/plan-mode` reference, which this extension adapts.
+- **done-menu** — the six-option `ctx.ui.select` menu presented at `agent_end` when a plan was extracted in plan mode. Options: Execute inline, Subagents via ce-plan→ce-work, Subagents direct dispatch, Write plan with ce-plan, Refine the plan, Stay in plan mode. The agent's signed recommendation is star-marked; an absent recommendation defaults to inline.
