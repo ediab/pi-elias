@@ -1,8 +1,8 @@
 {
-  "theme": "fahrenheit",
+  "theme": "everforest-dark-hard",
   "defaultProvider": "opencode-go",
   "defaultModel": "glm-5.2",
-  "defaultThinkingLevel": "max",
+  "defaultThinkingLevel": "high",
   "enableInstallTelemetry": false,
   "powerline": true,
   "breadcrumb": "inner",

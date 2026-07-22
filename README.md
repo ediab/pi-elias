@@ -8,8 +8,7 @@ plus Elias's packages and skills. For quickly bootstrapping pi on a new machine.
 - **pi harness** — via npm (`@earendil-works/pi-coding-agent`), falling back to the official
   curl installer (`https://pi.dev/install.sh`) if npm fails.
 - **pi packages** — the `PACKAGES` array in `install.sh` is the canonical list (web-access,
-  subagents, ponytail, ask-user, compound-engineering, pi-pretty, the `@juicesharp/rpiv-*`
-  family, curated themes, and more). See `install.sh` rather than this README — it's the source
+  subagents, ponytail, ask-user, compound-engineering, pi-pretty, and more). See `install.sh` rather than this README — it's the source
   of truth so the two never drift.
   Package-installed skills (librarian, ponytail, the `ce-*` suite, `ask-user`, etc.) come along
   automatically with their packages — nothing extra to do.

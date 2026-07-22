@@ -1,0 +1,3 @@
+# pi runtime dirs (local subagent/artifact state — not canonical config)
+.pi/
+.pi-subagents/

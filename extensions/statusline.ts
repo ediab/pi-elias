@@ -1,8 +1,8 @@
 /**
  * elias-statusline — theme-aware HUD for Pi.
  * Forked from pi-shannon-statusline: matrix rain removed, colors driven by
- * ctx.ui.theme instead of a hardcoded Monokai Pro palette, and ponytail +
- * caveman mode segments added to the model line (read from session entries).
+ * ctx.ui.theme instead of a hardcoded Monokai Pro palette, and a ponytail
+ * mode segment added to the model line (read from session entries).
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { execFile } from "node:child_process";
@@ -48,6 +48,7 @@ let agents: AgentRecord[] = [];
 let tools: ToolRecord[] = [];
 let modelProvider = "";
 let modelId = "";
+let thinkingLevel = "";
 let cwd = "";
 
 // ── Icons (plain glyphs, no emoji — matches shannon's set) ─────────
@@ -64,7 +65,7 @@ const I_SKILL = "★";
 const I_EXT = "◈";
 const I_RUN = "↻";
 const I_PONY = "◇";
-const I_CAVE = "▲";
+const I_THINK = "✶";
 
 // ── Theme helpers ──────────────────────────────────────────────────
 
@@ -85,14 +86,14 @@ const PONY_COLOR: Record<string, string> = {
 	full: "accent",
 	ultra: "error",
 };
-const CAVE_COLOR: Record<string, string> = {
-	lite: "success",
-	full: "warning",
-	ultra: "error",
-	"wenyan-lite": "muted",
-	wenyan: "accent",
-	"wenyan-ultra": "error",
-	micro: "dim",
+// ponytail: thinking tiers — higher effort = hotter color, mirroring ctxColor
+const THINK_COLOR: Record<string, string> = {
+	minimal: "dim",
+	low: "success",
+	medium: "accent",
+	high: "warning",
+	xhigh: "error",
+	max: "error",
 };
 
 // ── Fish-style path shortening (from shannon-statusline) ───────────
@@ -262,18 +263,28 @@ function lastCustomEntry(entries: any[], customType: string): any | null {
 	return null;
 }
 
+// ponytail: matches ponytail's getDefaultMode() — env > config file > 'full'.
+// Ponytail's pi-extension resolves its mode on session_start but does NOT append
+// a session entry unless /ponytail <mode> is run explicitly, so the default must
+// be read from the same sources ponytail reads.
+const PONY_VALID = new Set(["off", "lite", "full", "ultra", "review"]);
+
+function ponytailDefaultMode(): string {
+	const env = process.env.PONYTAIL_DEFAULT_MODE;
+	if (env && PONY_VALID.has(env.toLowerCase())) return env.toLowerCase();
+	try {
+		const cfg = JSON.parse(readFileSync(join(homedir(), ".config", "ponytail", "config.json"), "utf8"));
+		const m = String(cfg?.defaultMode ?? "").toLowerCase();
+		if (PONY_VALID.has(m)) return m;
+	} catch { /* no/invalid config */ }
+	return "full";
+}
+
 function readPonytailMode(ctx: any): string | null {
 	const entries = ctx?.sessionManager?.getEntries?.() ?? ctx?.sessionManager?.getBranch?.() ?? [];
 	const data = lastCustomEntry(entries, "ponytail-mode");
-	const mode = data?.mode;
-	return mode && mode !== "off" ? String(mode) : null;
-}
-
-function readCavemanLevel(ctx: any): string | null {
-	const entries = ctx?.sessionManager?.getEntries?.() ?? ctx?.sessionManager?.getBranch?.() ?? [];
-	const data = lastCustomEntry(entries, "caveman-level");
-	const level = data?.level;
-	return level && level !== "off" ? String(level) : null;
+	const mode = data?.mode ? String(data.mode) : ponytailDefaultMode();
+	return mode && mode !== "off" ? mode : null;
 }
 
 // ── Mode segments (icon + dim label + colored level, no emoji) ─────
@@ -283,9 +294,9 @@ function ponySegment(theme: Theme, mode: string): string {
 	return `${fg(theme, color, I_PONY)} ${fg(theme, "muted", "ponytail")} ${fg(theme, color, mode.toUpperCase())}`;
 }
 
-function caveSegment(theme: Theme, level: string): string {
-	const color = CAVE_COLOR[level] ?? "accent";
-	return `${fg(theme, color, I_CAVE)} ${fg(theme, "muted", "caveman")} ${fg(theme, color, level.toUpperCase())}`;
+function thinkSegment(theme: Theme, level: string): string {
+	const color = THINK_COLOR[level] ?? "accent";
+	return `${fg(theme, color, I_THINK)} ${fg(theme, "muted", "thinking")} ${fg(theme, color, level.toUpperCase())}`;
 }
 
 // ── HUD renderer ───────────────────────────────────────────────────
@@ -340,11 +351,10 @@ async function buildHud(ctx: any): Promise<string[]> {
 	}
 	line2.push(modelStr);
 
+	if (thinkingLevel && thinkingLevel !== "off") line2.push(thinkSegment(theme, thinkingLevel));
+
 	const pony = readPonytailMode(ctx);
 	if (pony) line2.push(ponySegment(theme, pony));
-
-	const cave = readCavemanLevel(ctx);
-	if (cave) line2.push(caveSegment(theme, cave));
 
 	try {
 		const usage = ctx.getContextUsage?.();
@@ -427,6 +437,7 @@ export default function (pi: ExtensionAPI) {
 			modelProvider = (ctx.model as any).provider ?? "";
 			modelId = (ctx.model as any).id ?? "";
 		}
+		thinkingLevel = pi.getThinkingLevel?.() ?? "";
 		refreshHud(ctx);
 	});
 
@@ -478,6 +489,11 @@ export default function (pi: ExtensionAPI) {
 			running.status = "completed";
 			running.endTime = Date.now();
 		}
+		refreshHud(ctx);
+	});
+
+	pi.on("thinking_level_select", (event, ctx) => {
+		thinkingLevel = (event as any).level ?? thinkingLevel;
 		refreshHud(ctx);
 	});
 

@@ -7,26 +7,20 @@ PACKAGES=(
   npm:pi-web-access
   npm:@yusukeshib/pi-notify
   npm:pi-mcp-adapter
-  npm:pi-subagents
   npm:@heyhuynhgiabuu/pi-pretty
   npm:@dietrichgebert/ponytail
-  npm:pi-claude-cli
+  npm:pi-subagents
   npm:pi-compound-engineering
   npm:pi-ask-user
   npm:pi-lsp
   npm:pi-simplify
-  npm:@juicesharp/rpiv-btw
-  npm:@juicesharp/rpiv-advisor
-  npm:pi-caveman
-  npm:@juicesharp/rpiv-todo
-  git:github.com/victor-software-house/pi-curated-themes
 )
 
 # Custom (non-package) skills bundled in this repo.
 CUSTOM_SKILLS=(handoff grill-me grilling)
 
 # Custom extensions bundled in this repo (single-file .ts -> ~/.pi/agent/extensions/).
-CUSTOM_EXTENSIONS=(clear exit no-footer statusline)
+CUSTOM_EXTENSIONS=(clear exit handoff no-footer statusline)
 # Custom directory extensions bundled in this repo (dir with index.ts -> ~/.pi/agent/extensions/<name>/).
 CUSTOM_EXTENSION_DIRS=(plan-mode)
 
@@ -44,12 +38,6 @@ else
     curl -fsSL https://pi.dev/install.sh | sh
   fi
   command -v pi >/dev/null 2>&1 || { echo "    ERROR: pi still not on PATH"; exit 1; }
-fi
-
-# lefthook: required by pi-curated-themes' npm prepare script.
-if ! command -v lefthook >/dev/null 2>&1 && command -v brew >/dev/null 2>&1; then
-  echo "    installing lefthook (needed by pi-curated-themes)..."
-  brew install lefthook || echo "    warn: lefthook install failed — pi-curated-themes may fail"
 fi
 
 echo "==> 2/3  packages (${#PACKAGES[@]} total)"
