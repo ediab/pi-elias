@@ -104,16 +104,16 @@ When you make changes to the pi harness setup (custom extensions, skills, instal
 
 _Note: machine-specific sections (e.g. VPS access details) are kept local-only in `~/.pi/agent/AGENTS.md` and intentionally not committed to this public repo. `install.sh` seeds this file only when it's absent, so it never clobbers those local additions. On a new machine, re-add them manually after running `install.sh`._
 
-<!-- BEGIN COMPOUND PI TOOL MAP -->
-## Compound Engineering (Pi compatibility)
+<!-- BEGIN SUPERPOWERS PI TOOL MAP -->
+## Superpowers (Pi compatibility)
 
-This block is added by the pi-compound-engineering package.
+This block documents the pi extensions required by superpowers skills and the retained ce-compound family.
 
-Pi extensions used by skills shipped by this package:
-- Required for full functionality: `pi-subagents` (by nicobailon) provides the `subagent` tool used by ce-compound, ce-code-review, ce-plan, ce-compound-refresh, and other parallel-agent skills.
+Pi extensions used by superpowers skills (brainstorming, systematic-debugging, writing-plans, etc.) and ce-compound / ce-compound-refresh / ce-setup / ce-ideate:
+- Required: `pi-subagents` (by nicobailon) provides the `subagent` tool for parallel-agent and chain workflows.
 - Recommended: `pi-ask-user` (by edlsh) provides the `ask_user` tool; skills fall back to numbered options in chat when it is missing.
 
 Install with:
   pi install npm:pi-subagents
   pi install npm:pi-ask-user
-<!-- END COMPOUND PI TOOL MAP -->
+<!-- END SUPERPOWERS PI TOOL MAP -->

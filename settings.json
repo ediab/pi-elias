@@ -2,12 +2,72 @@
   "theme": "everforest-dark-hard",
   "defaultProvider": "opencode-go",
   "defaultModel": "glm-5.2",
-  "defaultThinkingLevel": "high",
+  "defaultThinkingLevel": "max",
   "enableInstallTelemetry": false,
   "powerline": true,
   "breadcrumb": "inner",
   "header": true,
   "header-info": true,
   "quietStartup": true,
-  "hideThinkingBlock": true
+  "hideThinkingBlock": true,
+  "packages": [
+    "npm:pi-web-access",
+    "npm:@yusukeshib/pi-notify",
+    "npm:pi-mcp-adapter",
+    {
+      "source": "npm:pi-compound-engineering",
+      "skills": ["ce-compound", "ce-compound-refresh", "ce-setup", "ce-ideate"],
+      "extensions": []
+    },
+    "npm:pi-ask-user",
+    "npm:pi-subagents",
+    "npm:@ff-labs/pi-fff",
+    "npm:pi-code-previews",
+    "npm:@aliou/pi-guardrails",
+    "npm:@victor-software-house/pi-curated-themes",
+    "npm:@narumitw/pi-lsp",
+    "git:github.com/obra/superpowers"
+  ],
+  "subagents": {
+    "agentOverrides": {
+      "scout": {
+        "model": "opencode-go/deepseek-v4-flash",
+        "thinking": "off"
+      },
+      "delegate": {
+        "model": "opencode-go/deepseek-v4-flash",
+        "thinking": "off"
+      },
+      "context-builder": {
+        "model": "opencode-go/glm-5.2",
+        "thinking": "high"
+      },
+      "researcher": {
+        "model": "opencode-go/glm-5.2",
+        "thinking": "high"
+      },
+      "planner": {
+        "model": "opencode-go/glm-5.2",
+        "thinking": "max"
+      },
+      "oracle": {
+        "model": "opencode-go/kimi-k3",
+        "thinking": "max"
+      },
+      "reviewer": {
+        "model": "opencode-go/deepseek-v4-pro"
+      },
+      "worker": {
+        "model": "opencode-go/kimi-k2.7-code"
+      }
+    },
+    "watchdog": {
+      "enabled": true,
+      "main": {
+        "enabled": true,
+        "model": "opencode-go/glm-5.2",
+        "thinking": "max"
+      }
+    }
+  }
 }

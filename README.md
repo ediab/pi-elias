@@ -10,7 +10,7 @@ plus Elias's packages and skills. For quickly bootstrapping pi on a new machine.
 - **pi packages** — the `PACKAGES` array in `install.sh` is the canonical list (web-access,
   subagents, ponytail, ask-user, compound-engineering, pi-pretty, and more). See `install.sh` rather than this README — it's the source
   of truth so the two never drift.
-  Package-installed skills (librarian, ponytail, the `ce-*` suite, `ask-user`, etc.) come along
+  Package-installed skills (librarian, the `ce-*` suite, `ask-user`, superpowers, etc.) come along
   automatically with their packages — nothing extra to do.
 - **3 custom skills** — `handoff`, `grill-me`, `grilling` (bundled in this repo under `skills/`),
   copied to `~/.pi/agent/skills/` (the path pi actually scans).

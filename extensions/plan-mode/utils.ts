@@ -1,8 +1,32 @@
 /**
- * Pure utility functions for plan mode.
- * Extracted for testability.
- * Adapted from pi's shipped examples/extensions/plan-mode/utils.ts.
+ * Plan-mode helpers. Bash allowlist for read-only enforcement, plus the
+ * plan-file carve-out (the only writable target in plan mode).
+ * Kept pure so the carve-out logic is unit-testable without the pi runtime.
  */
+
+import nodeFs from "node:fs";
+import nodePath from "node:path";
+
+export function projectPlansDir(): string {
+	return nodePath.resolve(process.cwd(), ".pi", "plans");
+}
+export function globalPlansDir(): string {
+	return nodePath.join(process.env.HOME ?? "", ".pi", "agent", "plans");
+}
+export function newPlanFilePath(): string {
+	const id = `${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 6)}`;
+	const dir = projectPlansDir();
+	nodeFs.mkdirSync(dir, { recursive: true });
+	return nodePath.join(dir, `plan-${id}.md`);
+}
+// A path is writable in plan mode iff it IS or lives directly under the project or global
+// plans dir. Use a trailing-sep guard so a sibling like `<cwd>/.pi/plans-evil/x` (which
+// startsWith the `.pi/plans` prefix) is NOT accepted as a plan file.
+export function isPlanFilePath(target: string): boolean {
+	const abs = nodePath.isAbsolute(target) ? target : nodePath.resolve(process.cwd(), target);
+	const within = (dir: string): boolean => abs === dir || abs.startsWith(dir + nodePath.sep);
+	return within(projectPlansDir()) || within(globalPlansDir());
+}
 
 // Destructive commands blocked in plan mode
 const DESTRUCTIVE_PATTERNS = [
@@ -101,88 +125,26 @@ export function isSafeCommand(command: string): boolean {
 	return !isDestructive && isSafe;
 }
 
-export interface TodoItem {
-	step: number;
-	text: string;
-	completed: boolean;
-}
-
-export function cleanStepText(text: string): string {
-	let cleaned = text
-		.replace(/\*{1,2}([^*]+)\*{1,2}/g, "$1") // Remove bold/italic
-		.replace(/`([^`]+)`/g, "$1") // Remove code
-		.replace(
-			/^(Use|Run|Execute|Create|Write|Read|Check|Verify|Update|Modify|Add|Remove|Delete|Install)\s+(the\s+)?/i,
-			"",
-		)
-		.replace(/\s+/g, " ")
-		.trim();
-
-	if (cleaned.length > 0) {
-		cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
-	}
-	if (cleaned.length > 50) {
-		cleaned = `${cleaned.slice(0, 47)}...`;
-	}
-	return cleaned;
-}
-
-export function extractTodoItems(message: string): TodoItem[] {
-	const items: TodoItem[] = [];
-	const headerMatch = message.match(/\*{0,2}Plan:\*{0,2}\s*\n/i);
-	if (!headerMatch) return items;
-
-	const planSection = message.slice(message.indexOf(headerMatch[0]) + headerMatch[0].length);
-	const numberedPattern = /^\s*(\d+)[.)]\s+\*{0,2}([^*\n]+)/gm;
-
-	for (const match of planSection.matchAll(numberedPattern)) {
-		const text = match[2]
-			.trim()
-			.replace(/\*{1,2}$/, "")
-			.trim();
-		if (text.length > 5 && !text.startsWith("`") && !text.startsWith("/") && !text.startsWith("-")) {
-			const cleaned = cleanStepText(text);
-			if (cleaned.length > 3) {
-				items.push({ step: items.length + 1, text: cleaned, completed: false });
-			}
+// ponytail: one runnable self-check for the plan-file carve-out + bash allowlist.
+// Guarded by import.meta.main so it only runs when this file is the entry script
+// (bun utils.ts), never when pi's jiti imports it as a module.
+if ((import.meta as unknown as { main?: boolean }).main) {
+	const cwd = process.cwd();
+	const eq = (a: unknown, b: unknown, msg: string): void => {
+		if (a !== b) {
+			console.error(`FAIL: ${msg} — got ${JSON.stringify(a)}, expected ${JSON.stringify(b)}`);
+			process.exit(1);
 		}
-	}
-	return items;
-}
-
-export function extractDoneSteps(message: string): number[] {
-	const steps: number[] = [];
-	for (const match of message.matchAll(/\[DONE:(\d+)\]/gi)) {
-		const step = Number(match[1]);
-		if (Number.isFinite(step)) steps.push(step);
-	}
-	return steps;
-}
-
-export function markCompletedSteps(text: string, items: TodoItem[]): number {
-	const doneSteps = extractDoneSteps(text);
-	for (const step of doneSteps) {
-		const item = items.find((t) => t.step === step);
-		if (item) item.completed = true;
-	}
-	return doneSteps.length;
-}
-
-/**
- * Parse the agent's signed "Recommended execution" line.
- * Returns "inline" | "subagents" | null.
- */
-export function extractExecutionRecommendation(text: string): "inline" | "subagents" | null {
-	const match = text.match(/Recommended execution:\s*(inline|subagents?)/i);
-	if (!match) return null;
-	const value = match[1].toLowerCase();
-	return value.startsWith("sub") ? "subagents" : "inline";
-}
-
-/**
- * Build the compact plan payload passed as args to ce-plan / ce-work / direct dispatch.
- */
-export function buildPlanPayload(items: TodoItem[]): string {
-	const lines = items.map((t) => `${t.step}. ${t.text}`);
-	return `Execute this plan:\n\n${lines.join("\n")}`;
+	};
+	eq(isPlanFilePath(`${cwd}/.pi/plans/plan-abc.md`), true, "project plan file allowed");
+	eq(isPlanFilePath(`${cwd}/.pi/plans-evil/x.md`), false, "sibling-prefix dir blocked");
+	eq(isPlanFilePath(`${cwd}/.pi/plans/nested/x.md`), true, "nested plan file allowed");
+	eq(isPlanFilePath(`${cwd}/src/index.ts`), false, "src file blocked");
+	eq(isPlanFilePath("/etc/passwd"), false, "/etc/passwd blocked");
+	eq(isSafeCommand("ls -la"), true, "ls allowed");
+	eq(isSafeCommand("git status"), true, "git status allowed");
+	eq(isSafeCommand("rm -rf /"), false, "rm blocked");
+	eq(isSafeCommand("git commit -m x"), false, "git commit blocked");
+	eq(isSafeCommand("npm install"), false, "npm install blocked");
+	console.log("plan-mode utils ok");
 }

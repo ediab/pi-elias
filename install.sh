@@ -7,13 +7,15 @@ PACKAGES=(
   npm:pi-web-access
   npm:@yusukeshib/pi-notify
   npm:pi-mcp-adapter
-  npm:@heyhuynhgiabuu/pi-pretty
-  npm:@dietrichgebert/ponytail
-  npm:pi-subagents
   npm:pi-compound-engineering
   npm:pi-ask-user
-  npm:pi-lsp
-  npm:pi-simplify
+  npm:pi-subagents
+  npm:@ff-labs/pi-fff
+  npm:pi-code-previews
+  npm:@aliou/pi-guardrails
+  npm:@victor-software-house/pi-curated-themes
+  npm:@narumitw/pi-lsp
+  git:github.com/obra/superpowers
 )
 
 # Custom (non-package) skills bundled in this repo.
