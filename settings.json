@@ -56,10 +56,12 @@
         "thinking": "high"
       },
       "reviewer": {
-        "model": "opencode-go/deepseek-v4-pro"
+        "model": "opencode-go/glm-5.2",
+        "thinking": "max"
       },
       "worker": {
-        "model": "opencode-go/kimi-k2.7-code"
+        "model": "opencode-go/deepseek-v4-pro",
+        "thinking": "high"
       }
     },
     "watchdog": {
