@@ -4,6 +4,7 @@
   "defaultModel": "glm-5.2",
   "defaultThinkingLevel": "max",
   "enableInstallTelemetry": false,
+  "defaultProjectTrust": "always",
   "powerline": true,
   "breadcrumb": "inner",
   "header": true,
@@ -52,7 +53,7 @@
       },
       "oracle": {
         "model": "opencode-go/grok-4.5",
-        "thinking": "xhigh"
+        "thinking": "high"
       },
       "reviewer": {
         "model": "opencode-go/deepseek-v4-pro"
