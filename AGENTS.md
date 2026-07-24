@@ -85,6 +85,7 @@ Flow: `mcp({ tool: "context7_resolve-library-id", args: '{"libraryName": "react"
 Slash commands added via extensions in `~/dev/pi-elias/extensions/` (synced to `~/.pi/agent/extensions/` by `install.sh`/`update.sh`):
 
 - `/clear` — clear the conversation, start a fresh session (alias for `/new`)
+- `/commit-push-pr` — commit changes, push, and open a PR
 - `/exit` — quit pi (alias for `/quit`)
 
 ## pi-elias sync

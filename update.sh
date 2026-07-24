@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 PI_SKILLS_DIR="$HOME/.pi/agent/skills"
 PI_EXTENSIONS_DIR="$HOME/.pi/agent/extensions"
 CUSTOM_SKILLS=(handoff grill-me grilling)
-CUSTOM_EXTENSIONS=(clear exit handoff no-footer statusline)
+CUSTOM_EXTENSIONS=(clear commit-push-pr exit handoff no-footer statusline)
 CUSTOM_EXTENSION_DIRS=(plan-mode)
 
 echo "==> 1/2  pi + packages"

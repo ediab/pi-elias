@@ -22,7 +22,7 @@ PACKAGES=(
 CUSTOM_SKILLS=(handoff grill-me grilling)
 
 # Custom extensions bundled in this repo (single-file .ts -> ~/.pi/agent/extensions/).
-CUSTOM_EXTENSIONS=(clear exit handoff no-footer statusline)
+CUSTOM_EXTENSIONS=(clear commit-push-pr exit handoff no-footer statusline)
 # Custom directory extensions bundled in this repo (dir with index.ts -> ~/.pi/agent/extensions/<name>/).
 CUSTOM_EXTENSION_DIRS=(plan-mode)
 
