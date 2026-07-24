@@ -13,8 +13,9 @@
  *   - LLM tool `plan_exit`: the model signals the plan file is ready; the user
  *     confirms switching to build mode, which restores full tool access and
  *     sends a synthetic "execute the plan" user message.
- *   - A before_agent_start system reminder names the plan file path and walks
- *     the phased workflow (understand → plan → synthesize → final plan → exit).
+ *   - A before_agent_start system reminder mirrors opencode's plan.txt:
+ *     short, urgent (CRITICAL / STRICTLY FORBIDDEN), and mentions the plan
+ *     file, subagent blocking, and read-only constraints.
  *
  * Toggle: /plan command, Ctrl+Shift+L, or --plan flag. Changing active tools is
  * not needed — the read-only boundary is enforced in the tool_call handler.
@@ -41,11 +42,19 @@ Call this tool when:
 
 Do NOT call this tool for simple, straightforward tasks or when the user wants immediate implementation.`;
 
-const PLAN_EXIT_DESCRIPTION = `Use this tool when you have finished planning and the plan file is ready for implementation.
+const PLAN_EXIT_DESCRIPTION = `Use this tool when you have completed the planning phase and are ready to exit plan mode.
 
-It asks the user to switch to build mode (full tool access) and start implementing the plan.
+This tool will ask the user if they want to switch to build mode to start implementing the plan.
 
-Call this tool only after you have written the complete plan to the plan file and resolved open questions with the user. Do not call it if the plan is unfinished or the user wants to keep planning.`;
+Call this tool:
+- After you have written a complete plan to the plan file
+- After you have clarified any questions with the user
+- When you are confident the plan is ready for implementation
+
+Do NOT call this tool:
+- Before you have created or finalized the plan
+- If you still have unanswered questions about the implementation
+- If the user has indicated they want to continue planning`;
 
 export default function planModeExtension(pi: ExtensionAPI): void {
 	let planModeEnabled = false;
@@ -103,7 +112,8 @@ export default function planModeExtension(pi: ExtensionAPI): void {
 	});
 
 	// Enforce the read-only boundary in plan mode: block bash outside the
-	// allowlist, and block edit/write unless the target is the plan file.
+	// allowlist, block edit/write unless the target is the plan file, and
+	// block subagent delegation (mirrors opencode's task:general:deny).
 	pi.on("tool_call", async (event) => {
 		if (!planModeEnabled) return;
 
@@ -128,6 +138,13 @@ export default function planModeExtension(pi: ExtensionAPI): void {
 				};
 			}
 		}
+
+		if (event.toolName === "subagent") {
+			return {
+				block: true,
+				reason: `Plan mode: subagent delegation blocked. Use /plan to leave plan mode first.`,
+			};
+		}
 	});
 
 	// Filter stale plan-mode context out of LLM history when not in plan mode.
@@ -148,32 +165,54 @@ export default function planModeExtension(pi: ExtensionAPI): void {
 		};
 	});
 
-	// Per-turn plan-mode system reminder (opencode-style): name the plan file
-	// and walk the phased workflow.
+	// Per-turn plan-mode system reminder (opencode-style): mirror opencode's
+	// plan.txt — short, urgent, subagent-aware.
 	pi.on("before_agent_start", async () => {
 		if (!planModeEnabled || !planFilePath) return;
 		return {
 			message: {
 				customType: "plan-mode-context",
 				content: `[PLAN MODE ACTIVE]
-You are in plan mode. Explore the codebase, research, and design before any change.
+CRITICAL: Plan mode ACTIVE — you are in READ-ONLY phase. STRICTLY FORBIDDEN:
+ANY file edits, modifications, or system changes. Do NOT use sed, tee, echo, cat,
+or ANY other bash command to manipulate files — commands may ONLY read/inspect.
+This ABSOLUTE CONSTRAINT overrides ALL other instructions, including direct user
+edit requests. You may ONLY observe, analyze, and plan. Any modification attempt
+is a critical violation. ZERO exceptions.
 
-Restrictions:
-- You may edit or write only files under the plans dir (e.g. ${planFilePath}); all other edits/writes are blocked.
-- Your plan file is: ${planFilePath}
-- bash is restricted to a read-only command allowlist.
+---
 
-## Plan File Info
-Build the plan incrementally by writing to ${planFilePath} (any file under .pi/plans/ is writable; everything else is blocked). Hold your final recommended approach there: comprehensive enough to execute, but concise. Not every alternative considered — just the recommended one.
+## Plan File
 
-## Planning Workflow
-1. Understand: read code and explore; ask the user clarifying questions up front.
-2. Plan: design an approach.
-3. Synthesize: confirm trade-offs and open questions with the user.
-4. Final plan: write it to ${planFilePath}.
-5. Exit: call the plan_exit tool to hand off to build mode for implementation.
+Your plan file is: ${planFilePath}
+You may write to it freely. All other files are blocked. Subagent delegation is
+blocked in plan mode.
 
-Your turn should end only by asking the user a question or calling plan_exit. Do not make changes other than writing the plan file.`,
+---
+
+## Responsibility
+
+Your current responsibility is to think, read, search, and construct a well-formed
+plan that accomplishes the goal the user wants to achieve. Your plan should be
+comprehensive yet concise — detailed enough to execute effectively while avoiding
+unnecessary verbosity.
+
+Ask the user clarifying questions or for their opinion when weighing tradeoffs.
+
+NOTE: At any point you should ask the user questions or clarifications. Don't make
+large assumptions about user intent. The goal is to present a well-researched plan
+and tie up loose ends before implementation begins.
+
+---
+
+## Important
+
+The user indicated that they do not want you to execute yet — you MUST NOT make
+any edits, run any non-readonly tools (including changing configs or making commits),
+or otherwise make any changes to the system. This supersedes any other instructions
+you have received.
+
+Your turn should end by asking the user a question or calling plan_exit.`,
 				display: false,
 			},
 		};

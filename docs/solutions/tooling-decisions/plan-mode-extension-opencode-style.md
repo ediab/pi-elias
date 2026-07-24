@@ -22,7 +22,7 @@ applies_when:
 
 ## Context
 
-The pi coding-agent harness ships a `plan-mode` reference inside its npm package (`@earendil-works/pi-coding-agent/examples/extensions/plan-mode/`), but pi-elias wanted a faithful port of **opencode's** plan mode (`packages/core/src/plugin/agent.ts` + `packages/opencode/src/tool/plan.ts`): a read-only planning phase where the agent can read everything and write *only* a plan file, two LLM-callable tools that let the model propose entering and exiting plan mode, and a build-mode handoff. The friction was the same as opencode's — pi's normal tools (`edit`, `write`, freeform `bash`) make "just look, don't touch" risky, because an agent mid-plan will happily start editing. Unlike opencode (two pre-configured agents you `Tab` between), pi is single-agent, so the read-only boundary can't be "switch to a different agent with fewer permissions" — it has to be enforced at the tool-call boundary for the same agent. This work produced `extensions/plan-mode/index.ts` and `extensions/plan-mode/utils.ts`, a single toggle (`Ctrl+Shift+L`, also `/plan` and `--plan`), one `tool_call` handler that gates bash/edit/write, two LLM tools (`plan_enter`, `plan_exit`), and a per-turn plan-mode reminder — added to the installer's `CUSTOM_EXTENSION_DIRS=(plan-mode)` sync list (install.sh:31, update.sh:12). The previous version of this extension (tool-set removal + todo tracking + a done-menu + `ce-plan` routing) was superseded; this doc was rewritten to match the current mechanism.
+The pi coding-agent harness ships a `plan-mode` reference inside its npm package (`@earendil-works/pi-coding-agent/examples/extensions/plan-mode/`), but pi-elias wanted a faithful port of **opencode's** plan mode (`packages/core/src/plugin/agent.ts` + `packages/opencode/src/tool/plan.ts`): a read-only planning phase where the agent can read everything and write *only* a plan file, two LLM-callable tools that let the model propose entering and exiting plan mode, and a build-mode handoff. The friction was the same as opencode's — pi's normal tools (`edit`, `write`, freeform `bash`) make "just look, don't touch" risky, because an agent mid-plan will happily start editing. Unlike opencode (two pre-configured agents you `Tab` between), pi is single-agent, so the read-only boundary can't be "switch to a different agent with fewer permissions" — it has to be enforced at the tool-call boundary for the same agent. This work produced `extensions/plan-mode/index.ts` and `extensions/plan-mode/utils.ts`, a single toggle (`Ctrl+Shift+L`, also `/plan` and `--plan`), one `tool_call` handler that gates bash/edit/write/subagent, two LLM tools (`plan_enter`, `plan_exit`), and a per-turn plan-mode reminder mirroring opencode's `plan.txt` (short, urgent, CRITICAL/STRICTLY FORBIDDEN tone, subagent mention) — added to the installer's `CUSTOM_EXTENSION_DIRS=(plan-mode)` sync list (install.sh:31, update.sh:12). The previous version of this extension (tool-set removal + todo tracking + a done-menu + `ce-plan` routing) was superseded; this doc was rewritten to match the current mechanism.
 
 ## Guidance
 
@@ -44,15 +44,18 @@ How to build an opencode-style plan mode on pi's single-agent harness:
      }
      if (event.toolName === "edit" || event.toolName === "write") {
        const target = event.input.path ?? "";
-       // ponytail: allow write under the dedicated plans dirs only; everything else blocked.
        if (!isPlanFilePath(target)) {
          return { block: true,
-           reason: `Plan mode: write blocked. Only the plan file is editable (\`${planFilePath ?? "<cwd>/.pi/plans/plan-*.md"}\`). ...` };
+           reason: `Plan mode: write blocked. ...` };
        }
+     }
+     if (event.toolName === "subagent") {
+       return { block: true,
+         reason: `Plan mode: subagent delegation blocked. ...` };
      }
    });
    ```
-   All tools stay "active" (the tool list the model sees is unchanged) — calls are just blocked at the boundary. This is the lazy, root-cause place: one handler every `bash`/`edit`/`write` call routes through, rather than a per-tool interception scheme or a snapshot-filter-restore of the active tool set.
+   All tools stay "active" (the tool list the model sees is unchanged) — calls are just blocked at the boundary. The `subagent` tool is blocked (mirrors opencode's `task: { general: "deny" }` for the plan agent), so the model cannot delegate work to subagents during plan mode. This is the lazy, root-cause place: one handler every `bash`/`edit`/`write`/`subagent` call routes through, rather than a per-tool interception scheme or a snapshot-filter-restore of the active tool set.
 
 3. **The plan-file carve-out is a pure path predicate, kept in `utils.ts`.** `isPlanFilePath(target)` (utils.ts:25) resolves the target relative to `cwd`, then returns `true` iff it *is* or lives directly under the project plans dir (`<cwd>/.pi/plans/`, utils.ts:10) or the global plans dir (`~/.pi/agent/plans/`, utils.ts:13). The match uses a trailing-sep guard (`abs === dir || abs.startsWith(dir + nodePath.sep)`) so a sibling like `<cwd>/.pi/plans-evil/x` — which `startsWith(".../plans")` would wrongly accept — is rejected. `newPlanFilePath()` (index.ts:72, utils.ts:16) creates the dir and returns `<plans>/plan-<timestamp>-<rand>.md`. Projects over global means a plan is git-trackable and sits next to the work; the global dir is still accepted so a plan written there by an absolute home-relative path isn't wrongly blocked.
 
@@ -69,7 +72,7 @@ How to build an opencode-style plan mode on pi's single-agent harness:
      ```
      This is the direct analogue of opencode's `PlanExitTool` (`tool/plan.ts`), which on approval appends a synthetic user message `"The plan at ${plan} has been approved, you can now edit files. Execute the plan"` and switches the agent to `build`. `deliverAs: "followUp"` queues the message until the current turn finishes; `sendUserMessage` always triggers a turn, so no `triggerTurn` is needed there (it's accepted only by `sendMessage`).
 
-6. **Inject planner context with `before_agent_start`.** Each turn in plan mode re-injects a `customType: "plan-mode-context"` message (index.ts:153, `display:false`) whose content names the concrete plan-file path, states the read-only restrictions, and walks the phased workflow (understand → plan → synthesize → final plan → exit), ending with "Your turn should end only by asking the user a question or calling plan_exit." This is the pi equivalent of opencode's per-turn `plan-reminder-anthropic.txt`. To stop stale plan context leaking into normal turns, the `context` event (index.ts:134) filters out `plan-mode-context` and `plan-handoff` messages (index.ts:139) whenever `planModeEnabled` is false.
+6. **Inject planner context with `before_agent_start` — mirrors opencode's `plan.txt`.** Each turn in plan mode re-injects a `customType: "plan-mode-context"` message (index.ts:153, `display:false`) that mirrors opencode's plan-agent system prompt: short, urgent tone (CRITICAL / STRICTLY FORBIDDEN), names the plan file, mentions subagent blocking, and emphasizes the read-only constraint. Ends with "Your turn should end by asking the user a question or calling plan_exit." To stop stale plan context leaking into normal turns, the `context` event (index.ts:134) filters out `plan-mode-context` and `plan-handoff` messages (index.ts:139) whenever `planModeEnabled` is false.
 
 7. **Persist and resume via `pi.appendEntry`.** `persistState()` (index.ts:64) writes a `customType: "plan-mode"` entry with `{ enabled, planFilePath }`. On `session_start` (index.ts:245) it pops the last such entry and restores `planFilePath`; `planModeEnabled` is set to the `--plan` flag OR'd over the persisted `enabled`, so an explicit `--plan` start wins over a stale persisted `enabled:false` (flag-applied-after-entry is what makes `--plan` survive resume). If still enabled but no path, it mints one via `newPlanFilePath()` and re-persists so the path survives resume (index.ts:255–258).
 
@@ -79,7 +82,7 @@ How to build an opencode-style plan mode on pi's single-agent harness:
 
 ## Why This Matters
 
-- **Enforcing read-only at the `tool_call` boundary is what makes a single-agent harness safe for planning.** opencode expresses the boundary as a second agent's permission ruleset; pi has one agent, so the same guarantee lives in one handler that every `bash`/`edit`/`write` call routes through (index.ts:107). Even a confused agent can't `rm`, `git commit`, install packages, open an editor, or write `src/foo.ts` — only the plan file. One guard in the shared function, not one per caller.
+- **Enforcing read-only at the `tool_call` boundary is what makes a single-agent harness safe for planning.** opencode expresses the boundary as a second agent's permission ruleset; pi has one agent, so the same guarantee lives in one handler that every `bash`/`edit`/`write`/`subagent` call routes through. Even a confused agent can't `rm`, `git commit`, install packages, open an editor, delegate to subagents, or write `src/foo.ts` — only the plan file. One guard in the shared function, not one per caller.
 - **The plan-file carve-out is a tiny pure predicate (`isPlanFilePath`), so it's checkable without the pi runtime.** Because the boundary is "this path lives under a plans dir," the whole rule is `nodePath.resolve` + a trailing-sep `startsWith`/`===` check per dir (utils.ts:25). That made the runnable self-check (utils.ts:129) worth writing — it fails loudly if the writable surface ever widens by accident (the sibling-prefix assert is the case that would have caught just such a widening).
 - **`sendUserMessage(..., {deliverAs:"followUp"})` is the build-mode handoff with no custom API.** `plan_exit` doesn't reach into an agent-switch API — it asks the user, clears plan mode, and drips a synthetic user message, exactly like opencode's `PlanExitTool`. The model sees "execute the plan" as a normal follow-up turn with full tools restored.
 - **The keybinding decision avoided collateral damage.** Stealing Tab would have silently broken autocomplete; the chosen `ctrl+shift+l` keeps pi defaults intact and needs no `keybindings.json` migration, so the extension is portable across machines that sync via `CUSTOM_EXTENSION_DIRS`.
@@ -89,6 +92,8 @@ How to build an opencode-style plan mode on pi's single-agent harness:
 - When porting opencode's plan-agent design to a single-agent harness: enforce the read-only boundary at the shared `tool_call` boundary, not by swapping agents.
 - When a tool must stay available but constrained (bash in a read-only phase): gate it in a `tool_call` handler with a deny+allow allowlist, rather than removing the tool.
 - When you need a single writable exception to a read-only mode: express it as a pure path predicate (`isPlanFilePath`) and assert it with a guarded self-check, not by enumerating allowed calls in the handler.
+- When you need to block subagent delegation during a read-only phase: gate `subagent` in the same `tool_call` handler (mirrors opencode's `task: { general: "deny" }` for the plan agent).
+- When designing a plan-mode system prompt: prefer opencode's short, urgent tone (CRITICAL/STRICTLY FORBIDDEN) over a longer phased-workflow tutorial — it enforces the constraint more clearly.
 - When an extension should hand control back to the user/agent at a phase boundary: use `ctx.ui.confirm` to gate the switch and `pi.sendUserMessage(text, {deliverAs:"followUp"})` to kick off the next phase — `triggerTurn` is for `sendMessage`, not `sendUserMessage`.
 - When choosing a toggle shortcut: check `tui.input.*` defaults and what `ctrl+<key>` is already taken *before* binding; prefer a free default-key over shipping a `keybindings.json` rebind.
 
@@ -102,7 +107,7 @@ pi.registerShortcut("ctrl+shift+l", {
 });
 ```
 
-**Read-only boundary in one `tool_call` handler (index.ts:107–131):**
+**Read-only boundary in one `tool_call` handler (index.ts):**
 ```ts
 pi.on("tool_call", async (event) => {
   if (!planModeEnabled) return;
@@ -117,6 +122,9 @@ pi.on("tool_call", async (event) => {
     if (!isPlanFilePath(target)) {
       return { block: true, reason: `Plan mode: write blocked. Only the plan file is editable (...). ...` };
     }
+  }
+  if (event.toolName === "subagent") {
+    return { block: true, reason: `Plan mode: subagent delegation blocked. ...` };
   }
 });
 ```
